@@ -75,7 +75,7 @@ if __name__ == "__main__":
         sys.exit()
 
     the_stack = []
-    current = (0, 0)
+    current = choice(maze.unvisited)
     maze.visit_cell(current)
     while len(maze.unvisited) > 0:
         unvisited = maze.get_unvisited_neighbors(current)
