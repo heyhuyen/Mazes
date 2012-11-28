@@ -1,11 +1,11 @@
 import sys
-from random import choice, shuffle
-import numpy
+from random import choice
 
 NORTH = 0
 EAST = 1
 SOUTH = 2
 WEST = 3
+VISITED = 4
 DELTAS = [(-1, 0), (0, 1), (1, 0), (0, -1)] # N E S W
 OPPOSITE= { NORTH: SOUTH, SOUTH: NORTH, EAST: WEST, WEST: EAST}
 
@@ -20,18 +20,22 @@ class Maze:
         for row in range(self.nrows):
             new_row = []
             for col in range(self.ncols):
-                new_cell = Cell((row, col))
-                new_row.append(new_cell)
-                self.unvisited.append(new_cell)
+                new_row.append([1]*4 + [0]) # [ N E S W VISITED]
+                self.unvisited.append((row, col))
             self.cells.append(new_row)
 
     def get_unvisited_neighbors(self, (x, y)):
-        neighbor_coords = [(x+dx, y+dy) for dx, dy in DELTAS]
-        return [self.cells[x][y] for x, y in neighbor_coords if x in range(self.nrows) and y in range(self.ncols) and not self.cells[x][y].visited]
+        all_neighbors = [(x+dx, y+dy) for dx, dy in DELTAS]
+        return [(a, b) for a, b in all_neighbors if (a, b) in self.unvisited]
 
-    def visit_cell(self, cell):
-        cell.visited = True
-        self.unvisited.remove(cell)
+    def visit_cell(self, (row, col)):
+        #self.cells[row][col][VISITED] = 1
+        self.unvisited.remove((row, col))
+
+    def remove_wall(self, (a, b), (c, d)):
+        wall = DELTAS.index((c-a, d-b))
+        self.cells[a][b][wall] = 0
+        self.cells[c][d][OPPOSITE[wall]] = 0
 
     def __str__(self):
         result = ""
@@ -39,34 +43,25 @@ class Maze:
             top = ""
             middle = ""
             bottom = ""
-            for col in row:
-                if col.walls[0]:
+            for cell in row:
+                if cell[NORTH]:
                     top += "+----+ "
                 else:
                     top += "+    + "
-                if col.walls[3]:
+                if cell[WEST]:
                     middle += "|    "
                 else:
                     middle += "     "
-                if col.walls[1]:
+                if cell[EAST]:
                     middle += "| "
                 else:
                     middle += "  "
-                if col.walls[2]:
+                if cell[SOUTH]:
                     bottom += "+----+ "
                 else:
                     bottom += "+    + "
             result += top + "\n" + middle + "\n" + bottom + "\n"
         return result
-
-class Cell:
-    def __init__(self, pos):
-        self.pos = pos
-        self.visited = False
-        self.walls = [1]*4
-
-    def remove_wall(self, wall):
-        self.walls[wall] = 0
 
 DEFAULT_DIMS = (4, 4)
 
@@ -78,22 +73,18 @@ if __name__ == "__main__":
         maze = Maze((rows, cols))
     else:
         sys.exit()
-    total_cells = maze.ncols * maze.nrows
+
     the_stack = []
-    current = maze.cells[0][0]
+    current = (0, 0)
     maze.visit_cell(current)
     while len(maze.unvisited) > 0:
-        unvisited = maze.get_unvisited_neighbors(current.pos)
+        unvisited = maze.get_unvisited_neighbors(current)
         if len(unvisited) > 0:
             neighbor = choice(unvisited)
-            if not neighbor.visited:
-                the_stack.append(current)
-                test = numpy.asarray(neighbor.pos) - numpy.asarray(current.pos)
-                direction = DELTAS.index((test[0], test[1]))
-                current.remove_wall(direction)
-                neighbor.remove_wall(OPPOSITE[direction])
-                current = neighbor
-                maze.visit_cell(current)
+            the_stack.append(current)
+            maze.remove_wall(current, neighbor)
+            current = neighbor
+            maze.visit_cell(current)
         elif len(the_stack) > 0:
             current = the_stack.pop()
         else:
