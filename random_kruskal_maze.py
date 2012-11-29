@@ -1,4 +1,5 @@
 import sys
+from random import shuffle
 
 """
 Randomized Kruskal's Minimum Spanning Tree Algorithm for Maze Generation.
@@ -15,19 +16,19 @@ class Wall:
 
 def print_maze(num_rows, num_cols, walls):
     result = ""
-    result += " _" * num_cols + "\n|" # top border + next row's left border wall
+    result += " _" * num_cols + "\n|" # top border + next row's left border
+    last_row = range((num_rows - 1) * num_cols, num_rows * num_cols)
     for wall in walls:
-        if not wall.removed:
-            if wall.b - wall.a > 1:
-                result += "_" # horizontal wall
-                if wall.a % num_cols == num_cols - 1:
-                    result += "|\n|" # last cell in row + next row left border wall
-            else:
-                if wall.a / num_rows == num_rows - 1:
-                    result += "_" # bottom row cell
-                result += "|" # vertical wall
-        else:
+        if wall.a in last_row:
+            result += "_" # bottom border
+        if wall.removed:
             result += " " # removed wall
+        elif wall.b - wall.a > 1:
+            result += "_" # horizontal wall
+        else:
+            result += "|" # vertical wall
+        if wall.a % num_cols == num_cols - 1:
+            result += "|\n|" # row's right border + next row's left border
     result += "_|" # last bottom right cell
     print result
 
@@ -63,4 +64,21 @@ if __name__ == "__main__":
     print "Before knocking down walls:"
     print_maze(num_rows, num_cols, walls)
 
-        
+    wall_indices = range(len(walls))
+    shuffle(wall_indices)
+    for index in wall_indices:
+        wall = walls[index]
+        print "Before: Wall %r" % wall
+        for s in sets:
+            if wall.a in s:
+                a_set = s
+            if wall.b in s:
+                b_set = s
+        if a_set.isdisjoint(b_set):
+            sets.append(a_set.union(b_set))
+            sets.remove(a_set)
+            sets.remove(b_set)
+            wall.removed = True
+        print "After: Wall %r" % wall
+        print_maze(num_rows, num_cols, walls)
+        raw_input(">")
