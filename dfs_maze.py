@@ -12,11 +12,11 @@ OPPOSITE= { NORTH: SOUTH, SOUTH: NORTH, EAST: WEST, WEST: EAST}
 class Maze:
     def __init__(self, size):
         self.nrows, self.ncols = size
+        self.cells = []
+        self.unvisited = []
         self.setup_cells()
 
     def setup_cells(self):
-        self.cells = []
-        self.unvisited = []
         for row in range(self.nrows):
             new_row = []
             for col in range(self.ncols):
@@ -24,12 +24,30 @@ class Maze:
                 self.unvisited.append((row, col))
             self.cells.append(new_row)
 
+    def build(self):
+        the_stack = []
+        current = choice(self.unvisited)
+        self.visit_cell(current)
+        while len(self.unvisited) > 0:
+            unvisited_neighbors = self.get_unvisited_neighbors(current)
+            if len(unvisited_neighbors) > 0:
+                neighbor = choice(unvisited_neighbors)
+                the_stack.append(current)
+                self.remove_wall(current, neighbor)
+                current = neighbor
+                self.visit_cell(current)
+            elif len(the_stack) > 0:
+                current = the_stack.pop()
+            else:
+                current = choice(self.unvisited)
+                self.visit_cell(current)
+        end = current
+
     def get_unvisited_neighbors(self, (x, y)):
         all_neighbors = [(x+dx, y+dy) for dx, dy in DELTAS]
         return [(a, b) for a, b in all_neighbors if (a, b) in self.unvisited]
 
     def visit_cell(self, (row, col)):
-        #self.cells[row][col][VISITED] = 1
         self.unvisited.remove((row, col))
 
     def remove_wall(self, (a, b), (c, d)):
@@ -39,7 +57,7 @@ class Maze:
 
     def __str__(self):
         result = ""
-        for row in maze.cells:
+        for row in self.cells:
             top = ""
             middle = ""
             bottom = ""
@@ -74,20 +92,5 @@ if __name__ == "__main__":
     else:
         sys.exit()
 
-    the_stack = []
-    current = choice(maze.unvisited)
-    maze.visit_cell(current)
-    while len(maze.unvisited) > 0:
-        unvisited = maze.get_unvisited_neighbors(current)
-        if len(unvisited) > 0:
-            neighbor = choice(unvisited)
-            the_stack.append(current)
-            maze.remove_wall(current, neighbor)
-            current = neighbor
-            maze.visit_cell(current)
-        elif len(the_stack) > 0:
-            current = the_stack.pop()
-        else:
-            current = choice(maze.unvisited)
-            maze.visit_cell(current)
+    maze.build()
     print maze
