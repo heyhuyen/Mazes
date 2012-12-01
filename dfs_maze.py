@@ -1,3 +1,4 @@
+import pdb
 import time
 import sys
 from random import choice
@@ -6,6 +7,7 @@ NORTH = 0
 EAST = 1
 SOUTH = 2
 WEST = 3
+MARK = 4
 DELTAS = [(-1, 0), (0, 1), (1, 0), (0, -1)] # N E S W
 OPPOSITE= { NORTH: SOUTH, SOUTH: NORTH, EAST: WEST, WEST: EAST}
 
@@ -22,7 +24,7 @@ class Maze:
         for row in range(self.nrows):
             new_row = []
             for col in range(self.ncols):
-                new_row.append([1]*4 + [0]) # [ N E S W]
+                new_row.append([1]*4 + [0]) # [ N E S W MARK]
                 self.unvisited.append((row, col))
             self.cells.append(new_row)
 
@@ -47,6 +49,45 @@ class Maze:
         self.end = current
         #self.remove_wall(self.start, WEST)
         #self.remove_wall((self.nrows - 1, self.ncols -1), SOUTH)
+
+    def mark(self, (row, col)):
+        self.cells[row][col][MARK] += 1
+
+    #def get_possible_directions(self, (row, col)):
+        #cell = self.cells[row][col]
+        #walls = cell[:4]
+        #possible = [wall for wall in walls if not wall and that cell isn't marked
+
+    def moves(self, (row, col)):
+        cell = self.cells[row][col]
+        walls = cell[:4]
+        wall_indices = [direction for direction, val in enumerate(walls) if not val]
+        new_deltas = [DELTAS[i] for i in wall_indices]
+        neighbors = [(row+dx, col+dy) for dx, dy in new_deltas]
+        return [(a, b) for a, b in neighbors if (a, b) not in self.visited]
+
+    def solve(self, start, end):
+        back_stack = []
+        self.visited = []
+        current = start
+        self.visited.append(start)
+        self.mark(current)
+        self.solution = []
+        self.solution.append(current)
+        while current != end:
+            # get possible directions
+            moves = self.moves(current)
+            # if there are directions
+            if len(moves) > 0:
+                back_stack.append(current)
+                current = choice(moves)
+                self.visited.append(current)
+                self.mark(current)
+                self.solution.append(current)
+            else:
+                self.mark(current)
+                self.solution.remove(current)
+                current = back_stack.pop()
 
     def get_unvisited_neighbors(self, (x, y)):
         all_neighbors = [(x+dx, y+dy) for dx, dy in DELTAS]
@@ -100,4 +141,7 @@ if __name__ == "__main__":
     maze.build()
     print maze
     print "Start: %r\nEnd: %r" %(maze.start, maze.end)
+    maze.solve((0,0), (rows -1,cols -1))
+    print maze.solution
+
 
