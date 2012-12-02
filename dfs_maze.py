@@ -1,4 +1,3 @@
-import pdb
 import time
 import sys
 from random import choice
@@ -18,7 +17,6 @@ class Maze:
         self.cells = []
         self.unvisited = []
         self.setup_cells()
-        self.start = (0,0)
 
     def setup_cells(self):
         for row in range(self.nrows):
@@ -30,9 +28,9 @@ class Maze:
 
     def build(self):
         back_stack = []
-        self.start = choice(self.unvisited)
-        current = self.start
+        current = choice(self.unvisited)
         self.visit_cell(current)
+        print self
         while len(self.unvisited) > 0:
             unvisited_neighbors = self.get_unvisited_neighbors(current)
             if len(unvisited_neighbors) > 0:
@@ -41,68 +39,52 @@ class Maze:
                 self.remove_wall_between(current, neighbor)
                 current = neighbor
                 self.visit_cell(current)
+                time.sleep(0.5)
+                print self
             elif len(back_stack) > 0:
                 current = back_stack.pop()
             else:
                 current = choice(self.unvisited)
                 self.visit_cell(current)
-        self.end = current
-        #self.remove_wall(self.start, WEST)
-        #self.remove_wall((self.nrows - 1, self.ncols -1), SOUTH)
-
-    def mark(self, (row, col)):
-        self.cells[row][col][MARK] += 1
-
-    #def get_possible_directions(self, (row, col)):
-        #cell = self.cells[row][col]
-        #walls = cell[:4]
-        #possible = [wall for wall in walls if not wall and that cell isn't marked
-
-    def moves(self, (row, col)):
-        cell = self.cells[row][col]
-        walls = cell[:4]
-        wall_indices = [direction for direction, val in enumerate(walls) if not val]
-        new_deltas = [DELTAS[i] for i in wall_indices]
-        neighbors = [(row+dx, col+dy) for dx, dy in new_deltas]
-        return [(a, b) for a, b in neighbors if (a, b) not in self.visited]
 
     def solve(self, start, end):
         back_stack = []
-        self.visited = []
         current = start
-        self.visited.append(start)
         self.mark(current)
-        self.solution = []
-        self.solution.append(current)
+        print self
         while current != end:
-            # get possible directions
             moves = self.moves(current)
-            # if there are directions
             if len(moves) > 0:
                 back_stack.append(current)
                 current = choice(moves)
-                self.visited.append(current)
                 self.mark(current)
-                self.solution.append(current)
             else:
                 self.mark(current)
-                self.solution.remove(current)
                 current = back_stack.pop()
-
-    def get_unvisited_neighbors(self, (x, y)):
-        all_neighbors = [(x+dx, y+dy) for dx, dy in DELTAS]
-        return [(a, b) for a, b in all_neighbors if (a, b) in self.unvisited]
+            time.sleep(0.5)
+            print self
 
     def visit_cell(self, (row, col)):
         self.unvisited.remove((row, col))
 
-    def remove_wall(self, (row, col), direction):
-        self.cells[row][col][direction] = 0
+    def mark(self, (row, col)):
+        self.cells[row][col][MARK] += 1
+
+    def get_unvisited_neighbors(self, (row, col)):
+        all_neighbors = [(row+dr, col+dc) for dr, dc in DELTAS]
+        return [(a, b) for a, b in all_neighbors if (a, b) in self.unvisited]
+
+    def moves(self, (row, col)):
+        walls = self.cells[row][col][:4]
+        open_walls = [wall for wall, up in enumerate(walls) if not up]
+        directions_to_explore = [DELTAS[i] for i in open_walls]
+        path_neighbors = [(row+dr, col+dc) for dr, dc in directions_to_explore]
+        return [(a, b) for a, b in path_neighbors if not self.cells[a][b][MARK]]
 
     def remove_wall_between(self, (row, col), (nrow, ncol)):
-        direction = DELTAS.index((nrow - row, ncol - col))
-        self.remove_wall((row, col), direction)
-        self.remove_wall((nrow, ncol), OPPOSITE[direction])
+        wall_dir = DELTAS.index((nrow - row, ncol - col))
+        self.cells[row][col][wall_dir] = 0
+        self.cells[nrow][ncol][OPPOSITE[wall_dir]] = 0
 
     def __str__(self):
         result = ""
@@ -115,11 +97,17 @@ class Maze:
                 else:
                     top += "+    "
                 if cell[WEST]:
-                    middle += "|    "
+                    middle += "| "
                 else:
-                    middle += "     "
+                    middle += "  "
+                if cell[MARK] == 1:
+                    middle +=  "[]"
+                elif cell[MARK] == 2:
+                    middle += "xx"
+                else:
+                    middle += "  "
+                middle += " "
             result += top + "+\n" + middle + "|\n"
-        #result += "+ -- " * (self.ncols - 1) + "+    +\n"
         result += "+ -- " * self.ncols + "+\n"
         return result
 
@@ -136,12 +124,11 @@ if __name__ == "__main__":
         rows, cols = [int(x) for x in sys.argv[1:]]
         maze = Maze(rows, cols)
     else:
+        print "Usage: dfs_maze.py #rows #cols"
         sys.exit()
 
-    maze.build()
     print maze
-    print "Start: %r\nEnd: %r" %(maze.start, maze.end)
-    maze.solve((0,0), (rows -1,cols -1))
-    print maze.solution
-
-
+    raw_input("Hit <ENTER> to generate maze>")
+    maze.build()
+    raw_input("Hit <ENTER> to solve>")
+    maze.solve((0,0), (rows - 1,cols - 1))
